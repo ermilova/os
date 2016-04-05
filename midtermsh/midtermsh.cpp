@@ -5,6 +5,7 @@
 #include <a.out.h>
 #include <sys/wait.h>
 #include <iostream>
+#include <error.h>
 
 using namespace std;
 const int MAX_N = 255;
@@ -16,24 +17,19 @@ int *pipefd = new int[2];
 string old_buf = "";
 int l_comands = 0;
 int r_comands = 0;
-
+int cpid_size = 0;
 bool stop = false;
+int cpid[MAX_N];
 
 void hdl(int sig) {
+    for(int i = 0; i < cpid_size; i++) {
+        kill(cpid[i], sig);
+    }
     stop = true;
 }
 
-int cpid[MAX_N];
-
 void exec_all(int l_comands, int r_comands) {
-    //cout << l_comands << " " << r_comands;
-
-//    for (int i = l_comands; i < r_comands; i++) {
-//        for(int j = 0; j < comands[i].size(); j++) {
-//            cout << comands[i][j] << " ";
-//        }
-//        cout << endl;
-//    }
+    cpid_size = r_comands - l_comands;
     if (pipe(pipefd) == -1) {
         perror("global_pipe_failed");
         exit(EXIT_FAILURE);
@@ -111,11 +107,24 @@ size_t parse(char buf[]) {
 
 
 int main() {
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = hdl;
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    act.sa_mask = set;
+    sigaction(SIGINT, &act, 0);
+
+    if (stop) {
+        perror("SIGINT HERE");
+        exit(EXIT_FAILURE);
+    }
     int read_cnt = 0;
     do {
-        char *buf = new char[255];
+        char *buf = new char[MAX_N];
         write(STDOUT_FILENO, "$\n", 2);
-        read_cnt = read(STDIN_FILENO, buf, 255);
+        read_cnt = read(STDIN_FILENO, buf, MAX_N);
         parse(buf);
         if (read_cnt == -1) {
             return 0;
@@ -124,6 +133,3 @@ int main() {
     } while (read_cnt != 0);
     return 0;
 }
-/*
- *
- */
