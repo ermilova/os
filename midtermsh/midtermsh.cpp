@@ -96,12 +96,13 @@ size_t parse(char buf[]) {
         }
         if (buf[i] == '\n') {
             tmp = "";
+            flag = true;
             r_comands++;
             exec_all(l_comands, r_comands);
             l_comands = r_comands;
         }
     }
-
+    old_buf = tmp;
     return tmp.size();
 }
 
@@ -125,11 +126,13 @@ int main() {
         char *buf = new char[MAX_N];
         write(STDOUT_FILENO, "$\n", 2);
         read_cnt = read(STDIN_FILENO, buf, MAX_N);
-        parse(buf);
+        size_t par = parse(buf);
+        if (par < read_cnt) {
+            write(STDIN_FILENO, const_cast<char *>(old_buf.c_str()), old_buf.size() );
+        }
         if (read_cnt == -1) {
             return 0;
         }
-
     } while (read_cnt != 0);
     return 0;
 }
